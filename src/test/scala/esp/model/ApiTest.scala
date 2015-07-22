@@ -28,6 +28,8 @@ class ApiTest extends FlatSpec with Matchers {
     def createAccount(id: UserId): Unit = ???
 
     def depositMoney(accountNumber: AccountNumber, amount: BigDecimal): Unit = ???
+
+    def transferMoney(from: AccountNumber, to: AccountNumber, amount: BigDecimal): Unit = ???
   }
 
   val user = User("Adam", "Szkoda", Some("555-CALL-ME-ADAM"), Some("john@doe.com"))
@@ -118,5 +120,41 @@ class ApiTest extends FlatSpec with Matchers {
     api.depositMoney(accountNumber, amount)
     api.getAccount(accountNumber).get.balance shouldBe amount
   }
+
+  it should "be possible to transfer money between own accounts" in {
+    val id = api.createUser(user)
+    api.createAccount(id)
+
+    val fromNumber = api.listAccounts(id).head
+    val toNumber = api.listAccounts(id).last
+
+    api.depositMoney(fromNumber, amount = BigDecimal(100))
+    api.getAccount(fromNumber).get.balance shouldBe BigDecimal(100)
+    api.getAccount(toNumber).get.balance shouldBe BigDecimal(0)
+
+    api.transferMoney(fromNumber, toNumber, amount = BigDecimal(40))
+
+    api.getAccount(fromNumber).get.balance shouldBe BigDecimal(60)
+    api.getAccount(toNumber).get.balance shouldBe BigDecimal(40)
+  }
+
+  it should "NOT be possible to transfer money between own accounts if over limit" in {
+    val id = api.createUser(user)
+    api.createAccount(id)
+
+    val fromNumber = api.listAccounts(id).head
+    val toNumber = api.listAccounts(id).last
+
+    api.depositMoney(fromNumber, amount = BigDecimal(100))
+    api.getAccount(fromNumber).get.balance shouldBe BigDecimal(100)
+    api.getAccount(toNumber).get.balance shouldBe BigDecimal(0)
+
+    api.transferMoney(fromNumber, toNumber, amount = BigDecimal(2000))
+
+    api.getAccount(fromNumber).get.balance shouldBe BigDecimal(100)
+    api.getAccount(toNumber).get.balance shouldBe BigDecimal(0)
+  }
+
+
 
 }
