@@ -4,7 +4,7 @@ import org.scalatest.{FlatSpec, Matchers}
 
 case class User(firstName: String, lastName: String, phone: Option[String], email: Option[String])
 
-case class Account()
+case class Account(number: String, name: String)
 
 class ApiTest extends FlatSpec with Matchers {
 
@@ -12,13 +12,17 @@ class ApiTest extends FlatSpec with Matchers {
     type UserId = String
     type AccountNumber = String
 
-    def getUser(id: api.UserId): Option[User] = ???
+    def getUser(id: UserId): Option[User] = ???
 
     def listAccounts(id: UserId): Seq[AccountNumber] = ???
 
     def createUser(user: User): UserId = ???
 
     def changeEmail(id: UserId, email: Option[String]): Unit = ???
+
+    def setAccountName(accountNumber: AccountNumber, newName: String): Unit = ???
+
+    def getAccount(accountNumber: AccountNumber): Option[Account] = ???
   }
 
   val user = User("Adam", "Szkoda", Some("555-CALL-ME-ADAM"), Some("john@doe.com"))
@@ -30,6 +34,7 @@ class ApiTest extends FlatSpec with Matchers {
   it should "be possilbe to get user" in {
     val id = api.createUser(user)
     api.getUser(id) should not be None
+    api.getUser(id).get shouldBe user
   }
 
   it should "come with exactly one (main) account" in {
@@ -52,4 +57,30 @@ class ApiTest extends FlatSpec with Matchers {
     api.getUser(id).get.email shouldNot be(wrongMail)
     api.getUser(id).get.email shouldBe user.email
   }
+
+
+
+  "Account" should "be possible to assign name" in {
+    val id = api.createUser(user)
+    val accountNumber = api.listAccounts(id).head
+
+    api.setAccountName(accountNumber, newName = "vacation")
+    api.getAccount(accountNumber).get.name shouldBe "vacation"
+  }
+
+  it should "NOT be possible to change name to be empty" in {
+    val id = api.createUser(user)
+    val accountNumber = api.listAccounts(id).head
+
+    api.setAccountName(accountNumber, newName = "vacation")
+    api.setAccountName(accountNumber, newName = "")
+    api.getAccount(accountNumber).get.name shouldBe "vacation"
+  }
+
+  it should "come with default name of account" in {
+    val accountNumber = api.listAccounts(api.createUser(user)).head
+
+    api.getAccount(accountNumber).get.name shouldBe "scala-bank-1024"
+  }
+
 }
