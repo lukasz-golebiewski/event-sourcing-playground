@@ -9,6 +9,7 @@ case class Account(number: String, name: String)
 class ApiTest extends FlatSpec with Matchers {
 
   object api {
+
     type UserId = String
     type AccountNumber = String
 
@@ -23,6 +24,8 @@ class ApiTest extends FlatSpec with Matchers {
     def setAccountName(accountNumber: AccountNumber, newName: String): Unit = ???
 
     def getAccount(accountNumber: AccountNumber): Option[Account] = ???
+
+    def createAccount(id: UserId): Unit = ???
   }
 
   val user = User("Adam", "Szkoda", Some("555-CALL-ME-ADAM"), Some("john@doe.com"))
@@ -58,8 +61,6 @@ class ApiTest extends FlatSpec with Matchers {
     api.getUser(id).get.email shouldBe user.email
   }
 
-
-
   "Account" should "be possible to assign name" in {
     val id = api.createUser(user)
     val accountNumber = api.listAccounts(id).head
@@ -81,6 +82,25 @@ class ApiTest extends FlatSpec with Matchers {
     val accountNumber = api.listAccounts(api.createUser(user)).head
 
     api.getAccount(accountNumber).get.name shouldBe "scala-bank-1024"
+  }
+
+  it should "create second account" in {
+    val id = api.createUser(user)
+
+    api.createAccount(id)
+    api.listAccounts(id) should have size (2)
+  }
+
+  it should "NOT create more than 5 accounts" in {
+    val id = api.createUser(user)
+
+    (2 to 5).foreach { i =>
+      api.createAccount(id)
+      api.listAccounts(id) should have size i
+    }
+
+    api.createAccount(id)
+    api.listAccounts(id) should have size 5
   }
 
 }
