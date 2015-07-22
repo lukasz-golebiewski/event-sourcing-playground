@@ -16,21 +16,40 @@ class ApiTest extends FlatSpec with Matchers {
 
     def listAccounts(id: UserId): Seq[AccountNumber] = ???
 
-    def create(user: User): UserId = ???
+    def createUser(user: User): UserId = ???
+
+    def changeEmail(id: UserId, email: Option[String]): Unit = ???
   }
 
-  val user = User("Adam", "Szkoda", Some("555-CALL-ME-ADAM"), Some("adaszko@adaszko.com"))
+  val user = User("Adam", "Szkoda", Some("555-CALL-ME-ADAM"), Some("john@doe.com"))
 
   "User" should "be possible to create" in {
-    api.create(user) should not be ""
+    api.createUser(user) should not be ""
   }
 
   it should "be possilbe to get user" in {
-    val id = api.create(user)
+    val id = api.createUser(user)
     api.getUser(id) should not be None
   }
 
   it should "come with exactly one (main) account" in {
-    api.listAccounts(api.create(user)) should have size (1)
+    api.listAccounts(api.createUser(user)) should have size (1)
+  }
+
+  it should "be possible to change email" in {
+    val id = api.createUser(user)
+    val newEmail = Some("john_2@doe.com")
+    api.changeEmail(id, newEmail)
+
+    api.getUser(id).get.email shouldBe newEmail
+  }
+
+  it should "be NOT possible to change email" in {
+    val id = api.createUser(user)
+    val wrongMail = Some("john_2doe.com")
+    api.changeEmail(id, wrongMail)
+
+    api.getUser(id).get.email shouldNot be(wrongMail)
+    api.getUser(id).get.email shouldBe user.email
   }
 }
