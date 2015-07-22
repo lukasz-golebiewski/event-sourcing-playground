@@ -4,7 +4,7 @@ import org.scalatest.{FlatSpec, Matchers}
 
 case class User(firstName: String, lastName: String, phone: Option[String], email: Option[String])
 
-case class Account(number: String, name: String)
+case class Account(number: String, name: String, balance: BigDecimal)
 
 class ApiTest extends FlatSpec with Matchers {
 
@@ -26,6 +26,8 @@ class ApiTest extends FlatSpec with Matchers {
     def getAccount(accountNumber: AccountNumber): Option[Account] = ???
 
     def createAccount(id: UserId): Unit = ???
+
+    def depositMoney(accountNumber: AccountNumber, amount: BigDecimal): Unit = ???
   }
 
   val user = User("Adam", "Szkoda", Some("555-CALL-ME-ADAM"), Some("john@doe.com"))
@@ -101,6 +103,20 @@ class ApiTest extends FlatSpec with Matchers {
 
     api.createAccount(id)
     api.listAccounts(id) should have size 5
+  }
+
+  it should "have default balance 0" in {
+    val accountNumber = api.listAccounts(api.createUser(user)).head
+
+    api.getAccount(accountNumber).get.balance shouldBe BigDecimal("0.00")
+  }
+
+  it should "be possible to deposit money" in {
+    val accountNumber = api.listAccounts(api.createUser(user)).head
+    val amount = BigDecimal("289.00")
+
+    api.depositMoney(accountNumber, amount)
+    api.getAccount(accountNumber).get.balance shouldBe amount
   }
 
 }
