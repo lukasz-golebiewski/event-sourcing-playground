@@ -4,33 +4,39 @@ import org.scalatest.{FlatSpec, Matchers}
 
 case class User(firstName: String, lastName: String, phone: Option[String], email: Option[String])
 
-case class Account(number: String, name: String, balance: BigDecimal)
+case class Account(number: api.AccountNumber, name: String, balance: BigDecimal)
+
+case class Transaction(from: Option[api.AccountNumber], to: api.AccountNumber, amount: BigDecimal)
+
+object api {
+
+  def listTransactionHistory(id: api.UserId): Seq[Transaction] = ???
+
+  type UserId = String
+  type AccountNumber = String
+
+  def getUser(id: UserId): Option[User] = ???
+
+  def listAccounts(id: UserId): Seq[AccountNumber] = ???
+
+  def createUser(user: User): UserId = ???
+
+  def changeEmail(id: UserId, email: Option[String]): Unit = ???
+
+  def setAccountName(accountNumber: AccountNumber, newName: String): Unit = ???
+
+  def getAccount(accountNumber: AccountNumber): Option[Account] = ???
+
+  def createAccount(id: UserId): Unit = ???
+
+  def depositMoney(accountNumber: AccountNumber, amount: BigDecimal): Unit = ???
+
+  def transferMoney(from: AccountNumber, to: AccountNumber, amount: BigDecimal): Unit = ???
+}
 
 class ApiTest extends FlatSpec with Matchers {
 
-  object api {
 
-    type UserId = String
-    type AccountNumber = String
-
-    def getUser(id: UserId): Option[User] = ???
-
-    def listAccounts(id: UserId): Seq[AccountNumber] = ???
-
-    def createUser(user: User): UserId = ???
-
-    def changeEmail(id: UserId, email: Option[String]): Unit = ???
-
-    def setAccountName(accountNumber: AccountNumber, newName: String): Unit = ???
-
-    def getAccount(accountNumber: AccountNumber): Option[Account] = ???
-
-    def createAccount(id: UserId): Unit = ???
-
-    def depositMoney(accountNumber: AccountNumber, amount: BigDecimal): Unit = ???
-
-    def transferMoney(from: AccountNumber, to: AccountNumber, amount: BigDecimal): Unit = ???
-  }
 
   val user = User("Adam", "Szkoda", Some("555-CALL-ME-ADAM"), Some("john@doe.com"))
 
@@ -155,6 +161,29 @@ class ApiTest extends FlatSpec with Matchers {
     api.getAccount(toNumber).get.balance shouldBe BigDecimal(0)
   }
 
+  it should "list history of 0 transactions" in {
+    val id = api.createUser(user)
+    api.createAccount(id)
+
+    api.listTransactionHistory(id) should have size 0
+  }
+
+  it should "list history of 1 transactions" in {
+    val id = api.createUser(user)
+    api.createAccount(id)
+
+    val accountNumber = api.listAccounts(id).head
+    val amount = BigDecimal("289.00")
+
+    api.depositMoney(accountNumber, amount)
+
+    val transactions = api.listTransactionHistory(id)
+    transactions should have size 1
+
+    transactions.head.from shouldBe None
+    transactions.head.to shouldBe accountNumber
+    transactions.head.amount shouldBe amount
+  }
 
 
 }
