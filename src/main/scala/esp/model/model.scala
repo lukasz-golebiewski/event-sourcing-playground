@@ -23,5 +23,28 @@ object Bank {
 
 }
 
+object api {
 
+  import esp.model._
 
+  def listTransactionHistory(id: UserId): Seq[Transaction] = ???
+
+  def getUser(id: UserId): Option[User] = ???
+
+  def listAccounts(id: UserId): Seq[AccountNumber] = ???
+
+  def createUser(user: User): UserId = ???
+
+  def changeEmail(id: UserId, email: Option[String]): Unit = ???
+
+  def setAccountName(accountNumber: AccountNumber, newName: String): Unit = ???
+
+  def getAccount(accountNumber: AccountNumber): Option[Account] = ???
+
+  def createAccount(id: UserId): Unit = ???
+
+  def depositMoney(accountNumber: AccountNumber, amount: BigDecimal): Unit = ???
+
+  def transferMoney(from: AccountNumber, to: AccountNumber, amount: BigDecimal): Unit = ???
+
+}

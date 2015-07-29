@@ -1,33 +1,9 @@
 package esp.model
 
 import org.scalatest.{FlatSpec, Matchers}
-
-object api {
-
-  def listTransactionHistory(id: UserId): Seq[Transaction] = ???
-
-  def getUser(id: UserId): Option[User] = ???
-
-  def listAccounts(id: UserId): Seq[AccountNumber] = ???
-
-  def createUser(user: User): UserId = ???
-
-  def changeEmail(id: UserId, email: Option[String]): Unit = ???
-
-  def setAccountName(accountNumber: AccountNumber, newName: String): Unit = ???
-
-  def getAccount(accountNumber: AccountNumber): Option[Account] = ???
-
-  def createAccount(id: UserId): Unit = ???
-
-  def depositMoney(accountNumber: AccountNumber, amount: BigDecimal): Unit = ???
-
-  def transferMoney(from: AccountNumber, to: AccountNumber, amount: BigDecimal): Unit = ???
-}
+import esp.api
 
 class ApiTest extends FlatSpec with Matchers {
-
-
 
   val user = User("Adam", "Szkoda", Some("555-CALL-ME-ADAM"), Some("john@doe.com"))
   val user2 = User("Marcin", "Bachry", Some("555-CALL-ME-MARCIN"), Some("mbh@doe.com"))
