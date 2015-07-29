@@ -1,44 +1,12 @@
 package esp.model
 
+import esp.Api
 import org.scalatest.{FlatSpec, Matchers}
 
-case class User(firstName: String, lastName: String, phone: Option[String], email: Option[String])
-
-case class Account(number: api.AccountNumber, name: String, balance: BigDecimal)
-
-case class Transaction(from: Option[api.AccountNumber], to: api.AccountNumber, amount: BigDecimal)
-
-object api {
-
-  def listTransactionHistory(id: api.UserId): Seq[Transaction] = ???
-
-  type UserId = String
-  type AccountNumber = String
-
-  def getUser(id: UserId): Option[User] = ???
-
-  def listAccounts(id: UserId): Seq[AccountNumber] = ???
-
-  def createUser(user: User): UserId = ???
-
-  def changeEmail(id: UserId, email: Option[String]): Unit = ???
-
-  def setAccountName(accountNumber: AccountNumber, newName: String): Unit = ???
-
-  def getAccount(accountNumber: AccountNumber): Option[Account] = ???
-
-  def createAccount(id: UserId): Unit = ???
-
-  def depositMoney(accountNumber: AccountNumber, amount: BigDecimal): Unit = ???
-
-  def transferMoney(from: AccountNumber, to: AccountNumber, amount: BigDecimal): Unit = ???
-}
-
-class ApiTest extends FlatSpec with Matchers {
-
-
+trait ApiTest extends FlatSpec with Matchers { api:Api =>
 
   val user = User("Adam", "Szkoda", Some("555-CALL-ME-ADAM"), Some("john@doe.com"))
+  val user2 = User("Marcin", "Bachry", Some("555-CALL-ME-MARCIN"), Some("mbh@doe.com"))
 
   "User" should "be possible to create" in {
     api.createUser(user) should not be ""
@@ -185,5 +153,28 @@ class ApiTest extends FlatSpec with Matchers {
     transactions.head.amount shouldBe amount
   }
 
+  "Bank" should " receive fee for money transfers between accounts of different users" in {
+    val id = api.createUser(user)
+    val id2 = api.createUser(user2)
+    val accountNumber: AccountNumber = api.listAccounts(id).head
+    api.depositMoney(accountNumber, 100)
 
+    val initialBankBalance = Bank.Account.balance
+    val transferAmount: BigDecimal = 10
+    api.transferMoney(accountNumber, api.listAccounts(id2).head, transferAmount)
+    Bank.Account.balance shouldBe initialBankBalance + Bank.transferFee(transferAmount)
+  }
+
+  it should " deduct transfer fee from origin account" in {
+    val id = api.createUser(user)
+    val id2 = api.createUser(user2)
+    val accountNumber: AccountNumber = api.listAccounts(id).head
+    val originInitialBalance: Int = 100
+    api.depositMoney(accountNumber, originInitialBalance)
+
+    val transferAmount: BigDecimal = 10
+    api.transferMoney(accountNumber, api.listAccounts(id2).head, transferAmount)
+
+    api.getAccount(accountNumber).get.balance shouldBe originInitialBalance - transferAmount - Bank.transferFee(transferAmount)
+  }
 }
