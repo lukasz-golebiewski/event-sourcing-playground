@@ -1,9 +1,9 @@
 package esp.model
 
+import esp.Api
 import org.scalatest.{FlatSpec, Matchers}
-import esp.api
 
-class ApiTest extends FlatSpec with Matchers {
+trait ApiTest extends FlatSpec with Matchers { api:Api =>
 
   val user = User("Adam", "Szkoda", Some("555-CALL-ME-ADAM"), Some("john@doe.com"))
   val user2 = User("Marcin", "Bachry", Some("555-CALL-ME-MARCIN"), Some("mbh@doe.com"))

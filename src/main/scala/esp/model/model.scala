@@ -23,28 +23,28 @@ object Bank {
 
 }
 
-object api {
+trait Api {
 
   import esp.model._
 
-  def listTransactionHistory(id: UserId): Seq[Transaction] = ???
+  def createUser(user: User): UserId
 
-  def getUser(id: UserId): Option[User] = ???
+  def listTransactionHistory(id: UserId): Seq[Transaction]
 
-  def listAccounts(id: UserId): Seq[AccountNumber] = ???
+  def getUser(id: UserId): Option[User]
 
-  def createUser(user: User): UserId = ???
+  def listAccounts(id: UserId): Seq[AccountNumber]
 
-  def changeEmail(id: UserId, email: Option[String]): Unit = ???
+  def changeEmail(id: UserId, email: Option[String]): Unit
 
-  def setAccountName(accountNumber: AccountNumber, newName: String): Unit = ???
+  def setAccountName(accountNumber: AccountNumber, newName: String): Unit
 
-  def getAccount(accountNumber: AccountNumber): Option[Account] = ???
+  def getAccount(accountNumber: AccountNumber): Option[Account]
 
-  def createAccount(id: UserId): Unit = ???
+  def createAccount(id: UserId): Unit
 
-  def depositMoney(accountNumber: AccountNumber, amount: BigDecimal): Unit = ???
+  def depositMoney(accountNumber: AccountNumber, amount: BigDecimal): Unit
 
-  def transferMoney(from: AccountNumber, to: AccountNumber, amount: BigDecimal): Unit = ???
+  def transferMoney(from: AccountNumber, to: AccountNumber, amount: BigDecimal): Unit
 
 }
