@@ -1,27 +1,10 @@
 package esp.model
 
-import java.util.UUID
-
-import esp.model.api.AccountNumber
 import org.scalatest.{FlatSpec, Matchers}
-
-case class User(firstName: String, lastName: String, phone: Option[String], email: Option[String])
-
-case class Account(number: api.AccountNumber, name: String, balance: BigDecimal)
-
-object Bank {
-  val Account = esp.model.Account(UUID.randomUUID().toString, "main-bank-account", 1024)
-  def transferFee: BigDecimal => BigDecimal = _ * 0.03
-}
-
-case class Transaction(from: Option[api.AccountNumber], to: api.AccountNumber, amount: BigDecimal)
 
 object api {
 
-  def listTransactionHistory(id: api.UserId): Seq[Transaction] = ???
-
-  type UserId = String
-  type AccountNumber = String
+  def listTransactionHistory(id: UserId): Seq[Transaction] = ???
 
   def getUser(id: UserId): Option[User] = ???
 
