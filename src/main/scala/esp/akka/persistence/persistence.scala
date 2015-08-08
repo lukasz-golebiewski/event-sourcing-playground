@@ -16,8 +16,10 @@ sealed trait Command
 sealed trait Event
 
 case class CreateCommand(user: User) extends Command
+case class GetCommand(id: String) extends Command
 
-case class CreateEvent(uuid: UUID, user: User) extends Event
+case class CreateEvent(uuid: String, user: User) extends Event
+case class GetEvent(id: String) extends Event
 
 class UserPersistentActor extends PersistentActor {
 
@@ -26,14 +28,19 @@ class UserPersistentActor extends PersistentActor {
   var state = Map[String, User]()
 
   def createHandler(event: CreateEvent): Unit =
-    state = state.updated(UUID.randomUUID().toString, event.user)
+    state = state.updated(event.uuid, event.user)
 
   override def receiveCommand: Receive = {
     // TODO: validate command
     case CreateCommand(user) => {
-      val newUuid = UUID.randomUUID()
+      val newUuid = UUID.randomUUID().toString
       persistAll(scala.collection.immutable.Seq(CreateEvent(newUuid, user)))(createHandler)
       sender ! newUuid
+    }
+
+    case GetCommand(id) => {
+      persistAll(scala.collection.immutable.Seq(GetEvent(id)))(GetEvent=>())
+      sender ! state.get(id)
     }
 
   }
@@ -59,11 +66,14 @@ trait AkkaPersistenceApi extends Api {
     Await.result(future, Duration(5, SECONDS)).toString
   }
 
+  override def getUser(id: UserId): Option[User] = {
+    val future = (userStore ? GetCommand(id)).mapTo[Option[User]]
+    Await.result(future, Duration(5, SECONDS))
+  }
+
   override def listAccounts(id: UserId): Seq[AccountNumber] = ???
 
   override def createAccount(id: UserId): Unit = ???
-
-  override def getUser(id: UserId): Option[User] = ???
 
   override def transferMoney(from: AccountNumber, to: AccountNumber, amount: BigDecimal): Unit = ???
 
