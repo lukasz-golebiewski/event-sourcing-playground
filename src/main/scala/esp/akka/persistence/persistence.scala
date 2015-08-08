@@ -9,7 +9,7 @@ import esp.Api
 import esp.model._
 import scala.concurrent.duration._
 
-import scala.concurrent.Await
+import scala.concurrent.{Future, Await}
 
 sealed trait Command
 
@@ -53,6 +53,10 @@ class UserPersistentActor extends PersistentActor {
 
 trait AkkaPersistenceApi extends Api {
 
+  private implicit def awaitFuture[T](future : Future[T]) = {
+    Await.result(future, Duration(5, SECONDS))
+  }
+
   private val system = ActorSystem("mySystem")
 
   private val userStore = system.actorOf(Props[UserPersistentActor], "user-actor")
@@ -62,13 +66,11 @@ trait AkkaPersistenceApi extends Api {
   import akka.pattern.ask
 
   override def createUser(user: User): UserId = {
-    val future = userStore ? CreateCommand(user)
-    Await.result(future, Duration(5, SECONDS)).toString
+    (userStore ? CreateCommand(user)).mapTo[String]
   }
 
   override def getUser(id: UserId): Option[User] = {
-    val future = (userStore ? GetCommand(id)).mapTo[Option[User]]
-    Await.result(future, Duration(5, SECONDS))
+    (userStore ? GetCommand(id)).mapTo[Option[User]]
   }
 
   override def listAccounts(id: UserId): Seq[AccountNumber] = ???
