@@ -23,10 +23,10 @@ class UserPersistentActor extends PersistentActor {
 
   override def persistenceId: String = "user-actor"
 
-  var state = Map[UUID, User]()
+  var state = Map[String, User]()
 
   def createHandler(event: CreateEvent): Unit =
-    state = state.updated(UUID.randomUUID(), event.user)
+    state = state.updated(UUID.randomUUID().toString, event.user)
 
   override def receiveCommand: Receive = {
     // TODO: validate command
@@ -40,7 +40,7 @@ class UserPersistentActor extends PersistentActor {
 
   override def receiveRecover: Receive = {
     case event: CreateEvent => createHandler(event)
-    case SnapshotOffer(_, snapshot: Map[UUID, User]) => state = snapshot
+    case SnapshotOffer(_, snapshot: Map[String, User]) => state = snapshot
   }
 }
 
