@@ -12,7 +12,7 @@ trait ApiTest extends FlatSpec with Matchers { api:Api =>
     api.createUser(user) should not be ""
   }
 
-  it should "be possilbe to get user" in {
+  it should "be possible to get user" in {
     val id = api.createUser(user)
     api.getUser(id) should not be None
     api.getUser(id).get shouldBe user
