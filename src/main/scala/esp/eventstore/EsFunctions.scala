@@ -1,4 +1,4 @@
-package esp.model.eventstore
+package esp.eventstore
 
 import java.util.UUID
 

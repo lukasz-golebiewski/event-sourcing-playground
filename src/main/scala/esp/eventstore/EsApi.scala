@@ -1,4 +1,4 @@
-package esp.model.eventstore
+package esp.eventstore
 
 import esp.Api
 import esp.model._
