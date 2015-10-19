@@ -5,9 +5,9 @@ import esp.model._
 
 trait EsApi extends Api {
 
-  override def createUser(user: User): UserId = UserFunctions.ucCreateUser(user)
+  override def createUser(user: User): UserId = UserFunctions.createUser(user)
   override def getUser(id: UserId): Option[User] = UserFunctions.ucGetUser(id)
-  override def changeEmail(id: UserId, email: Option[String]): Unit = ???
+  override def changeEmail(id: UserId, email: Option[String]): Unit = UserFunctions.changeEmail(id, email)
 
   override def createAccount(id: UserId): Unit = ???
   override def setAccountName(accountNumber: AccountNumber, newName: String): Unit = ???
