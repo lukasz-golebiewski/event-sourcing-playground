@@ -1,7 +1,5 @@
 package esp.eventstore
 
-import esp.model.User
-
 import scalaz._
 import Scalaz._
 
@@ -14,6 +12,5 @@ trait UserValidation {
 
   def validate(email: Email): ValidationNel[String, Email] = (nonEmptyEmail(email) |@| emailContainsAt(email)) { (_, _) => email }
 }
-
 
 object UserValidation extends UserValidation

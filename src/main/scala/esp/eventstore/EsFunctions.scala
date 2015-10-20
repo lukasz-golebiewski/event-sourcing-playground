@@ -23,7 +23,20 @@ sealed trait UserCommand extends Command
 case class CreateUser(user: User) extends UserCommand
 case class ChangeEmail(userId: UserId, email: Option[String]) extends UserCommand
 
-trait UserEventSourcing {
+trait UserBusinessLogic {
+
+  def ucChangeEmail: ChangeEmail => List[UserEvent] =
+    cmd =>
+      (for {
+        email <- cmd.email.toSuccess("empty email")
+        validated <- UserValidation.validate(email)
+      } yield EmailChanged(cmd.userId, validated)).toList
+
+  def ucCreateUser: CreateUser => List[UserEvent] = cmd => List(UserCreated(UUID.randomUUID().toString, cmd.user))
+
+}
+
+trait UserEventSourcing { userBusinessLogic: UserBusinessLogic =>
 
   def buildStateForUser: List[UserEvent] => UserId => Option[User] = events => userId =>
       events.filter(_.id == userId).foldRight(None:Option[User])((event, maybeUser) => event match {
@@ -32,22 +45,19 @@ trait UserEventSourcing {
       })
 
   def ucs: User => UserCommand => List[UserEvent] = initial => {
-    case CreateUser(user) => List(UserCreated(UUID.randomUUID().toString, user))
+    case cu: CreateUser => ucCreateUser(cu)
     case ce: ChangeEmail => ucChangeEmail(ce)
   }
-  
-  def ucChangeEmail: ChangeEmail => List[UserEvent] =
-    changeEmailCommand =>
-      (for {
-        email <- changeEmailCommand.email.toSuccess("empty email")
-        validated <- UserValidation.validate(email)
-      } yield EmailChanged(changeEmailCommand.userId, validated)).toList
 
-  def store: User => UserEvent => User = current => {
-    case UserCreated(_, user) => User(user.firstName, user.lastName, user.phone, user.email)
-    case EmailChanged(_, email) => current.copy(email = Some(email))
-  }
+//  def store: User => UserEvent => User = current => {
+//    case UserCreated(_, user) => User(user.firstName, user.lastName, user.phone, user.email)
+//    case EmailChanged(_, email) => current.copy(email = Some(email))
+//  }
   
+}
+
+trait UserFunctions{ userEventSourcing: UserEventSourcing =>
+
   def createUser: User => UserId = { user =>
     val created = ucs(user)(CreateUser(user))
     EsMock.save(created)
@@ -63,10 +73,9 @@ trait UserEventSourcing {
     val emailChanged = ucs(state)(ChangeEmail(userId, email))
     EsMock.save(emailChanged)
   }
-  
 }
 
-object UserFunctions extends UserEventSourcing
+object UserFunctions extends UserFunctions with UserEventSourcing with UserBusinessLogic
 
 // f(events) -> state
 // f(state, command) -> event
