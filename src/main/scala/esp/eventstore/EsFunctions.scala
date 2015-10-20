@@ -26,42 +26,41 @@ case class ChangeEmail(userId: UserId, email: Option[String]) extends UserComman
 trait UserEventSourcing {
 
   def buildStateForUser: List[UserEvent] => UserId => Option[User] = events => userId =>
-      events.filter(_.id == userId).foldRight(None.asInstanceOf[Option[User]])((event, maybeUser) => event match {
+      events.filter(_.id == userId).foldRight(None:Option[User])((event, maybeUser) => event match {
         case UserCreated(_, user) => Some(user)
         case EmailChanged(_, email) => maybeUser.map(_.copy(email = Some(email)))
       })
 
-  def uc: User => UserCommand => List[UserEvent] = initial => {
+  def ucs: User => UserCommand => List[UserEvent] = initial => {
     case CreateUser(user) => List(UserCreated(UUID.randomUUID().toString, user))
-    case ChangeEmail(userId, maybeEmail) => {
-      (for {
-        email <- (maybeEmail \/> "empty email").validation.toValidationNel
-        validated <- UserValidation.validate(email)
-      } yield EmailChanged(userId, validated))
-        .fold(err => Nil, succ => List(succ))
-    }
-
+    case ce: ChangeEmail => ucChangeEmail(ce)
   }
+  
+  def ucChangeEmail: ChangeEmail => List[UserEvent] =
+    changeEmailCommand =>
+      (for {
+        email <- changeEmailCommand.email.toSuccess("empty email")
+        validated <- UserValidation.validate(email)
+      } yield EmailChanged(changeEmailCommand.userId, validated)).toList
 
   def store: User => UserEvent => User = current => {
     case UserCreated(_, user) => User(user.firstName, user.lastName, user.phone, user.email)
     case EmailChanged(_, email) => current.copy(email = Some(email))
   }
-
-
+  
   def createUser: User => UserId = { user =>
-    val created = uc(user)(CreateUser(user))
+    val created = ucs(user)(CreateUser(user))
     EsMock.save(created)
     created.head.id
   }
 
-  def ucGetUser: UserId => Option[User] = { userId =>
+  def getUser: UserId => Option[User] = { userId =>
     buildStateForUser(EsMock.users)(userId)
   }
 
   def changeEmail(userId: UserId, email: Option[String]): Unit = {
     val state = buildStateForUser(EsMock.users)(userId).get
-    val emailChanged = uc(state)(ChangeEmail(userId, email))
+    val emailChanged = ucs(state)(ChangeEmail(userId, email))
     EsMock.save(emailChanged)
   }
   
