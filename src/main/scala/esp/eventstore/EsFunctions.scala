@@ -4,6 +4,9 @@ import java.util.UUID
 
 import esp.model.{UserId, User}
 
+import scalaz._
+import Scalaz._
+
 object EsMock {
   var users: List[UserEvent] = Nil
   def save(events: List[UserEvent]) = users = events ::: users
@@ -28,10 +31,16 @@ trait UserEventSourcing {
         case EmailChanged(_, email) => maybeUser.map(_.copy(email = Some(email)))
       })
 
-
   def uc: User => UserCommand => List[UserEvent] = initial => {
     case CreateUser(user) => List(UserCreated(UUID.randomUUID().toString, user))
-    case ChangeEmail(userId, maybeEmail) => if (maybeEmail.nonEmpty && maybeEmail.get.contains('@')) List(EmailChanged(userId, maybeEmail.get)) else Nil
+    case ChangeEmail(userId, maybeEmail) => {
+      (for {
+        email <- (maybeEmail \/> "empty email").validation.toValidationNel
+        validated <- UserValidation.validate(email)
+      } yield EmailChanged(userId, validated))
+        .fold(err => Nil, succ => List(succ))
+    }
+
   }
 
   def store: User => UserEvent => User = current => {
@@ -52,8 +61,8 @@ trait UserEventSourcing {
 
   def changeEmail(userId: UserId, email: Option[String]): Unit = {
     val state = buildStateForUser(EsMock.users)(userId).get
-    val changed = uc(state)(ChangeEmail(userId, email))
-    EsMock.save(changed)
+    val emailChanged = uc(state)(ChangeEmail(userId, email))
+    EsMock.save(emailChanged)
   }
   
 }
