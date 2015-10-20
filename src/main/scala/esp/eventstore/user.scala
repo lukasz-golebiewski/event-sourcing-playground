@@ -7,22 +7,6 @@ import esp.model.{UserId, User}
 import scalaz._
 import Scalaz._
 
-object EsMock {
-  var users: List[UserEvent] = Nil
-  def save(events: List[UserEvent]) = users = events ::: users
-}
-
-sealed trait Event{ def id: UserId }
-sealed trait Command
-
-sealed trait UserEvent extends Event
-case class UserCreated(override val id: UserId, user: User) extends UserEvent
-case class EmailChanged(override val id: UserId, email: String) extends UserEvent
-
-sealed trait UserCommand extends Command
-case class CreateUser(user: User) extends UserCommand
-case class ChangeEmail(userId: UserId, email: Option[String]) extends UserCommand
-
 trait UserBusinessLogic {
 
   def ucChangeEmail: ChangeEmail => List[UserEvent] =
