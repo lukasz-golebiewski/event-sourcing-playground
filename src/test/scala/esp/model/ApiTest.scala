@@ -5,8 +5,8 @@ import org.scalatest.{FlatSpec, Matchers}
 
 trait ApiTest extends FlatSpec with Matchers { api:Api =>
 
-  val user = User("Adam", "Szkoda", Some("555-CALL-ME-ADAM"), Some("john@doe.com"))
-  val user2 = User("Marcin", "Bachry", Some("555-CALL-ME-MARCIN"), Some("mbh@doe.com"))
+  val user = User("Adam", "Smith", Some("555-CALL-ME-ADAM"), Some("john@doe.com"))
+  val user2 = User("Marcin", "Kowalski", Some("555-CALL-ME-MARCIN"), Some("mbh@doe.com"))
 
   "User" should "be possible to create" in {
     api.createUser(user) should not be ""
