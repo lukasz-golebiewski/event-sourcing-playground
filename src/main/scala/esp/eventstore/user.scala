@@ -9,6 +9,7 @@ import Scalaz._
 
 trait UserBusinessLogic {
 
+  //TODO: how return validation messages?
   def ucChangeEmail: ChangeEmail => List[UserEvent] =
     cmd =>
       (for {
@@ -16,7 +17,7 @@ trait UserBusinessLogic {
         validated <- UserValidation.validate(email)
       } yield EmailChanged(cmd.userId, validated)).toList
 
-  def ucCreateUser: CreateUser => List[UserEvent] = cmd => List(UserCreated(UUID.randomUUID().toString, cmd.user))
+  def ucCreateUser: CreateUser => UserId => List[UserEvent] = cmd => userId => List(UserCreated(userId, cmd.user))
 
 }
 
@@ -29,7 +30,7 @@ trait UserEventSourcing { userBusinessLogic: UserBusinessLogic =>
       })
 
   def ucs: User => UserCommand => List[UserEvent] = initial => {
-    case cu: CreateUser => ucCreateUser(cu)
+    case cu: CreateUser => ucCreateUser(cu)(UUID.randomUUID().toString)
     case ce: ChangeEmail => ucChangeEmail(ce)
   }
 
