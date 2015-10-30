@@ -18,10 +18,9 @@ trait UserBusinessLogic {
       } yield EmailChanged(cmd.userId, validated)).toList
 
   def ucCreateUser: CreateUser => UserId => AccountNumber => List[Event] =
-    cmd => userId => accountNumber => {
-      List(UserCreated(userId, cmd.user, List(accountNumber)),
-           AccountCreated(userId, Account(accountNumber, "scala-bank-1024", BigDecimal(0))))
-    }
+    cmd => userId => accountNumber =>
+      List(UserCreated(userId, cmd.user),
+           AccountCreated(userId, Account(accountNumber, "scala-bank-1024", 0)))
 
 }
 
@@ -30,7 +29,7 @@ trait EventSourcing { userBusinessLogic: UserBusinessLogic =>
   def buildStateForUser: List[Event] => UserId => Option[User] =
     events => userId =>
       events.filter(_.id == userId).foldRight(None:Option[User])((event, maybeUser) => event match {
-        case UserCreated(_, user, accounts) => Some(user)
+        case UserCreated(_, user) => Some(user)
         case EmailChanged(_, email) => maybeUser.map(_.copy(email = Some(email)))
         case _ => maybeUser
       })
