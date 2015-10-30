@@ -18,6 +18,9 @@ trait AccountBusinessLogic {
         validated <- AccountValidation.nonEmptyName(cmd.name)
       } yield AccountNameChanged("", cmd.accountNumber, validated)).toList
 
+  def ucDepositMoney: DepositMoney => List[Event] =
+    cmd =>
+      List(MoneyDeposited("", cmd.accountNumber, cmd.amount))
 }
 
 trait AccountEventSourcing { accountBL: AccountBusinessLogic =>
@@ -26,6 +29,7 @@ trait AccountEventSourcing { accountBL: AccountBusinessLogic =>
     (event, accounts) => event match {
     case AccountCreated(_, account) => accounts ::: List(account)
     case AccountNameChanged(_, accNum, name) => accounts.filter(_.number == accNum).map(_.copy(name = name))
+    case MoneyDeposited(_, accNum, amount) => accounts.filter(_.number == accNum).map{ a => a.copy(balance = a.balance + amount) }
     case _ => accounts
   }
 
@@ -41,6 +45,7 @@ trait AccountEventSourcing { accountBL: AccountBusinessLogic =>
     initial => {
       case ca: CreateAccount => ucCreateAccount(initial)(ca)
       case can: ChangeAccountName => ucChangeName(can)
+      case dm: DepositMoney => ucDepositMoney(dm)
       case _ => Nil
     }
 }
@@ -68,6 +73,13 @@ trait AccountFunctions { accountES: AccountEventSourcing =>
   def listAccount: UserId => Seq[AccountNumber] =
     userId =>
       buildStateForAccountWithUserId(EsMock.saved)(userId).map(_.number)
+
+  def depositMoney: AccountNumber => BigDecimal => Unit =
+    accNum => amount => {
+      val state = buildStateForAccountWithAccountNumber(EsMock.saved)(accNum)
+      val deposited = ucs(state)(DepositMoney(accNum, amount))
+      EsMock.save(deposited)
+    }
 
 }
 
