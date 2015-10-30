@@ -22,18 +22,28 @@ trait AccountBusinessLogic {
     cmd =>
       List(MoneyDeposited("", cmd.accountNumber, cmd.amount))
 
-  def ucTransferMoney: List[Account] => TransferMoney => List[Event] =
+  def ucTransferMoney: List[AccountWithUserId] => TransferMoney => List[Event] =
     state => cmd => {
-      val fromAcc = state.find(_.number == cmd.from)
-      val toAcc = state.find(_.number == cmd.to)
+      val fromAcc = state.find(_.account.number == cmd.from)
+      val toAcc = state.find(_.account.number == cmd.to)
       (for {
         from <- fromAcc
         to <- toAcc
-        if from.balance >= cmd.amount
-      } yield List(MoneyDeposited("", from.number, -cmd.amount), MoneyDeposited("", to.number, cmd.amount))).toList.flatten
+        if from.account.balance >= cmd.amount
+        fee <- Some(Bank.transferFee(cmd.amount))
+      } yield {
+          val deductAmount = if (from.userId != to.userId) {
+            Bank.Account = Bank.Account.copy(balance = Bank.Account.balance + fee)
+            -cmd.amount - fee
+          } else -cmd.amount
+          List(MoneyDeposited("", from.account.number, deductAmount),
+               MoneyDeposited("", to.account.number, cmd.amount))
+        }).toList.flatten
     }
 
 }
+
+case class AccountWithUserId(account: Account, userId: UserId)
 
 trait AccountEventSourcing { accountBL: AccountBusinessLogic =>
 
@@ -58,6 +68,24 @@ trait AccountEventSourcing { accountBL: AccountBusinessLogic =>
       case ca: CreateAccount => ucCreateAccount(initial)(ca)
       case can: ChangeAccountName => ucChangeName(can)
       case dm: DepositMoney => ucDepositMoney(dm)
+      case _ => Nil
+    }
+
+  //TODO: refactor to remove duplicity
+  def buildStateWithUserId: (Event, List[AccountWithUserId]) => List[AccountWithUserId] =
+    (event, accounts) => event match {
+      case AccountCreated(userId, account) => AccountWithUserId(account, userId) :: accounts
+      case AccountNameChanged(_, accNum, name) => accounts.map(a => if (a.account.number == accNum) a.copy(account = a.account.copy(name = name)) else a)
+      case MoneyDeposited(_, accNum, amount) => accounts.map(a => if (a.account.number == accNum) a.copy(account = a.account.copy(balance = a.account.balance + amount)) else a)
+      case _ => accounts
+    }
+
+  def buildStateForAccountAndUserIdWithAccountNumber: List[Event] => AccountNumber => List[AccountWithUserId] =
+    events => accNum =>
+      events.foldRight(Nil:List[AccountWithUserId])(buildStateWithUserId).filter(_.account.number == accNum)
+
+  def ucs2: List[AccountWithUserId] => Command => List[Event] =
+    initial => {
       case tm: TransferMoney => ucTransferMoney(initial)(tm)
       case _ => Nil
     }
@@ -96,9 +124,9 @@ trait AccountFunctions { accountES: AccountEventSourcing =>
 
   def transferMoney: AccountNumber => AccountNumber => BigDecimal => Unit =
     from => to => amount => {
-      val fromAcc = buildStateForAccountWithAccountNumber(EsMock.saved)(from)
-      val toAcc = buildStateForAccountWithAccountNumber(EsMock.saved)(to)
-      val transferred = ucs(fromAcc ::: toAcc)(TransferMoney(from, to, amount))
+      val fromAcc = buildStateForAccountAndUserIdWithAccountNumber(EsMock.saved)(from)
+      val toAcc = buildStateForAccountAndUserIdWithAccountNumber(EsMock.saved)(to)
+      val transferred = ucs2(fromAcc ::: toAcc)(TransferMoney(from, to, amount))
       EsMock.save(transferred)
     }
 }

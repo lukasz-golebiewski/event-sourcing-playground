@@ -14,7 +14,7 @@ package model {
   case class Transaction(from: Option[AccountNumber], to: AccountNumber, amount: BigDecimal)
 
   object Bank {
-    val Account = esp.model.Account(UUID.randomUUID().toString, "main-bank-account", 1024)
+    var Account = esp.model.Account(UUID.randomUUID().toString, "main-bank-account", 1024)
     def transferFee: BigDecimal => BigDecimal = _ * 0.03
   }
 
