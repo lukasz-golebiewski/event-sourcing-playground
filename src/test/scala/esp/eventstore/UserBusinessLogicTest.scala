@@ -33,8 +33,9 @@ class UserBusinessLogicTest extends FlatSpec with Matchers {
   "Create User" should "always generate one event about user creation" in {
     val user = User("Chuck", "Norris", Some("800-CALL-ME-Chucky"), Some("chuck@chuck.com"))
     val id = "222"
-    userLogic.ucCreateUser(CreateUser(user))("111") should not be empty
-    userLogic.ucCreateUser(CreateUser(user))(id).head should equal(UserCreated(id, user))
+    val accNum = "777"
+    userLogic.ucCreateUser(CreateUser(user))("111")("222") should not be empty
+    userLogic.ucCreateUser(CreateUser(user))(id)(accNum).head should equal(UserCreated(id, user, List(accNum)))
   }
 
 }

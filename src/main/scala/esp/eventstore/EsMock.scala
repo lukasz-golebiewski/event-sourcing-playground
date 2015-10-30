@@ -1,6 +1,6 @@
 package esp.eventstore
 
 object EsMock {
-  var users: List[UserEvent] = Nil
-  def save(events: List[UserEvent]) = users = events ::: users
+  var saved: List[Event] = Nil
+  def save(events: List[Event]) = saved = events ::: saved
 }
