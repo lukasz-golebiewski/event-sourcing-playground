@@ -7,7 +7,7 @@ import Scalaz._
 
 trait AccountValidation {
   def nonEmptyName(name: String) = if (name.nonEmpty) name.successNel else "empty name".failureNel
-  def doesntExceed5Accounts(accounts: List[Account]) = if (accounts.length < 5) accounts.successNel else "only 5 accounts allowed".failureNel
+  def doesntExceed5Accounts(accounts: List[AccountWithUserId]) = if (accounts.length < 5) accounts.successNel else "only 5 accounts allowed".failureNel
 }
 
 object AccountValidation extends AccountValidation

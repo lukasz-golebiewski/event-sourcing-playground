@@ -12,7 +12,11 @@ case class MoneyDeposited(override val id: UserId, transactionId: Option[String]
 sealed trait Command
 case class CreateUser(user: User) extends Command
 case class ChangeEmail(userId: UserId, email: Option[String]) extends Command
-case class CreateAccount(userId: UserId, currentAccounts: List[Account]) extends Command
+case class CreateAccount(userId: UserId) extends Command
 case class ChangeAccountName(userId: UserId, accountNumber: AccountNumber, name: String) extends Command
 case class DepositMoney(accountNumber: AccountNumber, amount: BigDecimal) extends Command
 case class TransferMoney(from: AccountNumber, to: AccountNumber, amount: BigDecimal) extends Command
+
+
+case class AccountWithUserId(account: Account, userId: UserId)
+case class Tr(from: Option[AccountNumber], to: Option[AccountNumber], transaction: Option[String], amount: BigDecimal)
