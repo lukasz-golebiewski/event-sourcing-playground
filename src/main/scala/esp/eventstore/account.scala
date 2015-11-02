@@ -18,9 +18,9 @@ trait AccountBusinessLogic {
         validated <- AccountValidation.nonEmptyName(cmd.name)
       } yield AccountNameChanged("", cmd.accountNumber, validated)).toList
 
-  def ucDepositMoney: DepositMoney => List[Event] =
-    cmd =>
-      List(MoneyDeposited("", cmd.accountNumber, cmd.amount))
+  def ucDepositMoney: List[AccountWithUserId] => DepositMoney => List[Event] =
+    state => cmd =>
+      List(MoneyDeposited(state.head.userId, None, cmd.accountNumber, cmd.amount))
 
   def ucTransferMoney: List[AccountWithUserId] => TransferMoney => List[Event] =
     state => cmd => {
@@ -36,14 +36,16 @@ trait AccountBusinessLogic {
             Bank.Account = Bank.Account.copy(balance = Bank.Account.balance + fee)
             -cmd.amount - fee
           } else -cmd.amount
-          List(MoneyDeposited("", from.account.number, deductAmount),
-               MoneyDeposited("", to.account.number, cmd.amount))
+          val transaction = UUID.randomUUID().toString
+          List(MoneyDeposited(from.userId, Some(transaction), from.account.number, deductAmount),
+               MoneyDeposited(to.userId, Some(transaction),  to.account.number, cmd.amount))
         }).toList.flatten
     }
 
 }
 
 case class AccountWithUserId(account: Account, userId: UserId)
+case class Tr(from: Option[AccountNumber], to: Option[AccountNumber], transaction: Option[String], amount: BigDecimal)
 
 trait AccountEventSourcing { accountBL: AccountBusinessLogic =>
 
@@ -51,7 +53,7 @@ trait AccountEventSourcing { accountBL: AccountBusinessLogic =>
     (event, accounts) => event match {
         case AccountCreated(_, account) => account :: accounts
         case AccountNameChanged(_, accNum, name) => accounts.map(a => if (a.number == accNum) a.copy(name = name) else a)
-        case MoneyDeposited(_, accNum, amount) => accounts.map(a => if (a.number == accNum) a.copy(balance = a.balance + amount) else a)
+        case MoneyDeposited(_, _, accNum, amount) => accounts.map(a => if (a.number == accNum) a.copy(balance = a.balance + amount) else a)
         case _ => accounts
       }
 
@@ -67,7 +69,6 @@ trait AccountEventSourcing { accountBL: AccountBusinessLogic =>
     initial => {
       case ca: CreateAccount => ucCreateAccount(initial)(ca)
       case can: ChangeAccountName => ucChangeName(can)
-      case dm: DepositMoney => ucDepositMoney(dm)
       case _ => Nil
     }
 
@@ -76,7 +77,7 @@ trait AccountEventSourcing { accountBL: AccountBusinessLogic =>
     (event, accounts) => event match {
       case AccountCreated(userId, account) => AccountWithUserId(account, userId) :: accounts
       case AccountNameChanged(_, accNum, name) => accounts.map(a => if (a.account.number == accNum) a.copy(account = a.account.copy(name = name)) else a)
-      case MoneyDeposited(_, accNum, amount) => accounts.map(a => if (a.account.number == accNum) a.copy(account = a.account.copy(balance = a.account.balance + amount)) else a)
+      case MoneyDeposited(_, _, accNum, amount) => accounts.map(a => if (a.account.number == accNum) a.copy(account = a.account.copy(balance = a.account.balance + amount)) else a)
       case _ => accounts
     }
 
@@ -86,6 +87,7 @@ trait AccountEventSourcing { accountBL: AccountBusinessLogic =>
 
   def ucs2: List[AccountWithUserId] => Command => List[Event] =
     initial => {
+      case dm: DepositMoney => ucDepositMoney(initial)(dm)
       case tm: TransferMoney => ucTransferMoney(initial)(tm)
       case _ => Nil
     }
@@ -117,8 +119,8 @@ trait AccountFunctions { accountES: AccountEventSourcing =>
 
   def depositMoney: AccountNumber => BigDecimal => Unit =
     accNum => amount => {
-      val state = buildStateForAccountWithAccountNumber(EsMock.saved)(accNum)
-      val deposited = ucs(state)(DepositMoney(accNum, amount))
+      val state = buildStateForAccountAndUserIdWithAccountNumber(EsMock.saved)(accNum)
+      val deposited = ucs2(state)(DepositMoney(accNum, amount))
       EsMock.save(deposited)
     }
 
@@ -129,6 +131,25 @@ trait AccountFunctions { accountES: AccountEventSourcing =>
       val transferred = ucs2(fromAcc ::: toAcc)(TransferMoney(from, to, amount))
       EsMock.save(transferred)
     }
+
+  def listTransaction: UserId => Seq[Transaction] =
+    userId => {
+      EsMock.saved.filter(_.id == userId).flatMap{
+        case MoneyDeposited(_, Some(tr), accNum, amount) if amount < 0 => List(Tr(Some(accNum), None, Some(tr), amount))
+        case MoneyDeposited(_, Some(tr), accNum, amount) if amount >= 0 => List(Tr(None, Some(accNum), Some(tr), amount))
+        case MoneyDeposited(_, None, accNum, amount) => List(Tr(None, Some(accNum), None, amount))
+        case _ => Nil
+      }.groupBy(x => x.transaction).flatMap{
+        case (Some(trNum), trs) => List(trs.reduce{ (a1, a2) => (a1, a2) match {
+          case (Tr(Some(x), None, tr, am), Tr(None, Some(y), _, _)) => Tr(Some(x), Some(y), tr, am)
+          case (Tr(None, Some(y), _, _), Tr(Some(x), None, tr, am)) => Tr(Some(x), Some(y), tr, am)
+        }})
+        case (None, trs) => trs
+      }.map(tr => Transaction(tr.from, tr.to.get, tr.amount))
+    }.toSeq
+
 }
 
 object AccountFunctions extends AccountFunctions with AccountEventSourcing with AccountBusinessLogic
+
+

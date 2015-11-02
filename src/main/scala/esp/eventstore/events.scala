@@ -7,7 +7,7 @@ case class UserCreated(override val id: UserId, user: User) extends Event
 case class EmailChanged(override val id: UserId, email: String) extends Event
 case class AccountCreated(override val id: UserId, account: Account) extends Event
 case class AccountNameChanged(override val id: UserId, accountNumber: AccountNumber, name: String) extends Event
-case class MoneyDeposited(override val id: UserId, accountNumber: AccountNumber, amount: BigDecimal) extends Event
+case class MoneyDeposited(override val id: UserId, transactionId: Option[String], accountNumber: AccountNumber, amount: BigDecimal) extends Event
 
 sealed trait Command
 case class CreateUser(user: User) extends Command

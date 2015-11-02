@@ -17,7 +17,7 @@ trait EsApi extends Api {
   override def depositMoney(accountNumber: AccountNumber, amount: BigDecimal): Unit = AccountFunctions.depositMoney(accountNumber)(amount)
   override def transferMoney(from: AccountNumber, to: AccountNumber, amount: BigDecimal): Unit = AccountFunctions.transferMoney(from)(to)(amount)
 
-  override def listTransactionHistory(id: UserId): Seq[Transaction] = ???
+  override def listTransactionHistory(id: UserId): Seq[Transaction] = AccountFunctions.listTransaction(id)
 
 }
 
